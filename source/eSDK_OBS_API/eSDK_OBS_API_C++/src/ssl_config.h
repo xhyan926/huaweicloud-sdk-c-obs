@@ -18,6 +18,6 @@
 #include "eSDKOBS.h"
 
 // 从配置文件加载 SSL 配置
-void load_ssl_config_from_ini(obs_options * *options);
+void load_ssl_config_from_ini(obs_options *options);
 
 #endif /* SSL_CONFIG_H */
