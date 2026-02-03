@@ -253,6 +253,11 @@ void init_obs_options(obs_options *options)
     options->request_options.client_key_path = NULL;
     options->request_options.client_key_password = NULL;
 
+    // SSL配置初始化（国密模式）
+    options->request_options.gm_mode_switch = OBS_GM_MODE_CLOSE;
+    options->request_options.ssl_min_version = CURL_SSLVERSION_TLSv1_2;
+    options->request_options.ssl_max_version = (1 << 16) | 3;  // CURL_SSLVERSION_TLSv1_3
+
     options->bucket_options.access_key = NULL;
     options->bucket_options.secret_access_key =NULL;
     options->bucket_options.bucket_name = NULL;

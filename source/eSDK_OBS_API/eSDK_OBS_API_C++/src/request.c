@@ -493,6 +493,70 @@ obs_status setup_CA(http_request *request,
         COMMLOG(OBS_LOGINFO, "%s Mutual SSL authentication enabled", __FUNCTION__);
     }
 
+    // SSL套件和算法配置：支持国密和标准TLS两种模式
+    if (params->request_option.gm_mode_switch == OBS_GM_MODE_OPEN)
+    {
+        // 国密模式
+        const char *gm_cipher_default = "ECDHE-SM2-WITH-SM4-SM3:ECDHE-SM2-WITH-SM4-GCM-SM3";
+        const char *cipher_list = params->request_option.ssl_cipher_list ?
+                                  params->request_option.ssl_cipher_list : gm_cipher_default;
+
+        status = curl_easy_setopt(request->curl, CURLOPT_SSL_CIPHER_LIST, cipher_list);
+        if (status != CURLE_OK) {
+            COMMLOG(OBS_LOGWARN, "%s Set SSL cipher list failed, error: %s",
+                     __FUNCTION__, curl_easy_strerror(status));
+        } else {
+            COMMLOG(OBS_LOGINFO, "%s GM SSL cipher list: %s", __FUNCTION__, cipher_list);
+        }
+
+        // 国密模式使用TLSv1.2（Tongsuo兼容）
+        status = curl_easy_setopt(request->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+        if (status != CURLE_OK) {
+            COMMLOG(OBS_LOGWARN, "%s Set SSL version failed, error: %s",
+                     __FUNCTION__, curl_easy_strerror(status));
+        } else {
+            COMMLOG(OBS_LOGINFO, "%s GM SSL version set to TLSv1.2", __FUNCTION__);
+        }
+    }
+    else
+    {
+        // 标准TLS模式
+        const char *std_cipher_default = "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:"
+                                         "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256";
+        const char *cipher_list = params->request_option.ssl_cipher_list ?
+                                  params->request_option.ssl_cipher_list : std_cipher_default;
+
+        status = curl_easy_setopt(request->curl, CURLOPT_SSL_CIPHER_LIST, cipher_list);
+        if (status != CURLE_OK) {
+            COMMLOG(OBS_LOGWARN, "%s Set SSL cipher list failed, error: %s",
+                     __FUNCTION__, curl_easy_strerror(status));
+        } else {
+            COMMLOG(OBS_LOGINFO, "%s Standard TLS cipher list: %s", __FUNCTION__, cipher_list);
+        }
+
+        // 设置SSL版本范围
+        long min_ver = params->request_option.ssl_min_version ?
+                           params->request_option.ssl_min_version : CURL_SSLVERSION_TLSv1_2;
+        long max_ver = params->request_option.ssl_max_version ?
+                           params->request_option.ssl_max_version : ((1 << 16) | 3);
+
+        status = curl_easy_setopt(request->curl, CURLOPT_SSLVERSION, min_ver);
+        if (status != CURLE_OK) {
+            COMMLOG(OBS_LOGWARN, "%s Set SSL min version failed, error: %s",
+                     __FUNCTION__, curl_easy_strerror(status));
+        } else {
+            COMMLOG(OBS_LOGINFO, "%s SSL min version set to %ld", __FUNCTION__, min_ver);
+        }
+
+        status = curl_easy_setopt(request->curl, CURLOPT_SSLVERSION_MAX, max_ver);
+        if (status != CURLE_OK) {
+            COMMLOG(OBS_LOGWARN, "%s Set SSL max version failed, error: %s",
+                     __FUNCTION__, curl_easy_strerror(status));
+        } else {
+            COMMLOG(OBS_LOGINFO, "%s SSL max version set to %ld", __FUNCTION__, max_ver);
+        }
+    }
+
     return OBS_STATUS_OK;
 }
 

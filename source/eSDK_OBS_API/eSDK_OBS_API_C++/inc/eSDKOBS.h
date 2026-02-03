@@ -1102,6 +1102,13 @@ typedef enum
     OBS_MUTUAL_SSL_OPEN = 1
 } obs_mutual_ssl_switch;
 
+// 国密模式枚举
+typedef enum
+{
+    OBS_GM_MODE_CLOSE = 0,  // 非国密模式（标准TLS）
+    OBS_GM_MODE_OPEN = 1     // 国密模式（支持SM2/SM3/SM4）
+} obs_gm_mode_switch;
+
 typedef struct obs_http_request_option
 {
     int speed_limit;
@@ -1122,10 +1129,15 @@ typedef struct obs_http_request_option
     long buffer_size;
     char* server_cert_path;
 	bool curl_log_verbose;
+    // 双向证书认证配置
     obs_mutual_ssl_switch mutual_ssl_switch;
     char* client_cert_path;
     char* client_key_path;
     char* client_key_password;
+    // SSL配置
+    obs_gm_mode_switch gm_mode_switch;   // 国密模式开关
+    long ssl_min_version;                // SSL最小版本（可选，默认TLSv1.2）
+    long ssl_max_version;                // SSL最大版本（可选，默认TLSv1.3）
 } obs_http_request_option;
 
 typedef struct temp_auth_configure
