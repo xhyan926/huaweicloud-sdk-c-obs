@@ -1096,6 +1096,12 @@ typedef enum
 	OBS_REPLACE_NEW                            =2
 }metadata_action_indicator;
 
+typedef enum
+{
+    OBS_MUTUAL_SSL_CLOSE = 0,
+    OBS_MUTUAL_SSL_OPEN = 1
+} obs_mutual_ssl_switch;
+
 typedef struct obs_http_request_option
 {
     int speed_limit;
@@ -1116,6 +1122,10 @@ typedef struct obs_http_request_option
     long buffer_size;
     char* server_cert_path;
 	bool curl_log_verbose;
+    obs_mutual_ssl_switch mutual_ssl_switch;
+    char* client_cert_path;
+    char* client_key_path;
+    char* client_key_password;
 } obs_http_request_option;
 
 typedef struct temp_auth_configure

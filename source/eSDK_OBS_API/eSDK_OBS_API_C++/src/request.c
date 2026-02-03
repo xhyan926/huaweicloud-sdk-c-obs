@@ -471,6 +471,28 @@ obs_status setup_CA(http_request *request,
     {
         curl_easy_setopt_safe(CURLOPT_CAINFO, params->request_option.server_cert_path);
     }
+
+    // 双向证书认证配置
+    if (params->request_option.mutual_ssl_switch == OBS_MUTUAL_SSL_OPEN)
+    {
+        if (params->request_option.client_cert_path)
+        {
+            curl_easy_setopt_safe(CURLOPT_SSLCERT, params->request_option.client_cert_path);
+        }
+
+        if (params->request_option.client_key_path)
+        {
+            curl_easy_setopt_safe(CURLOPT_SSLKEY, params->request_option.client_key_path);
+
+            if (params->request_option.client_key_password)
+            {
+                curl_easy_setopt_safe(CURLOPT_KEYPASSWD, params->request_option.client_key_password);
+            }
+        }
+
+        COMMLOG(OBS_LOGINFO, "%s Mutual SSL authentication enabled", __FUNCTION__);
+    }
+
     return OBS_STATUS_OK;
 }
 

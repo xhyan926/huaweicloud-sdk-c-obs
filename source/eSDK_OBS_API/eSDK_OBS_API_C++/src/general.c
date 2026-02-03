@@ -1,11 +1,11 @@
 /*********************************************************************************
-* Copyright 2019 Huawei Technologies Co.,Ltd.
+* Copyrights 2019 Huawei Technologies Co.,Ltd.
 * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 * this file except in compliance with the License.  You may obtain a copy of the
 * License at
-* 
+*
 * http://www.apache.org/licenses/LICENSE-2.0
-* 
+*
 * Unless required by applicable law or agreed to in writing, software distributed
 * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 * CONDITIONS OF ANY KIND, either express or implied.  See the License for the
@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "request.h"
+#include "ssl_config.h"
 #include "simplexml.h"
 #include "util.h"
 #include "log.h"
@@ -247,7 +248,11 @@ void init_obs_options(obs_options *options)
 	options->request_options.curl_log_verbose = false;
     options->request_options.forbid_reuse_tcp = false;
     options->request_options.curl_max_connects = DEFAULT_MAXCONNECTS;
-        
+    options->request_options.mutual_ssl_switch = OBS_MUTUAL_SSL_CLOSE;
+    options->request_options.client_cert_path = NULL;
+    options->request_options.client_key_path = NULL;
+    options->request_options.client_key_password = NULL;
+
     options->bucket_options.access_key = NULL;
     options->bucket_options.secret_access_key =NULL;
     options->bucket_options.bucket_name = NULL;
@@ -260,6 +265,9 @@ void init_obs_options(obs_options *options)
     options->bucket_options.epid = NULL;
 	options->bucket_options.useCname = false;
     options->temp_auth = NULL;
+
+    // 加载 SSL 配置文件
+    load_ssl_config_from_ini(options);
 }
 
 obs_status init_certificate_set_path(obs_certificate_conf ca_conf, char *ca_path,
