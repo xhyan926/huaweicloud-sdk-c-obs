@@ -428,6 +428,8 @@ typedef enum
 
 #define OBS_MAX_METADATA_SIZE               4096
 
+#define OBS_MAX_TEMP_URL_LENGTH             4096
+
 #define OBS_METADATA_HEADER_NAME_PREFIX     "x-amz-meta-"
 
 #define OBS_VERSION_STATUS_ENABLED           "Enabled"
@@ -1096,6 +1098,18 @@ typedef enum
 	OBS_REPLACE_NEW                            =2
 }metadata_action_indicator;
 
+/**
+ * HTTP方法枚举，用于临时授权URL
+ */
+typedef enum
+{
+    OBS_HTTP_METHOD_GET = 0,
+    OBS_HTTP_METHOD_PUT = 1,
+    OBS_HTTP_METHOD_DELETE = 2,
+    OBS_HTTP_METHOD_HEAD = 3,
+    OBS_HTTP_METHOD_POST = 4
+} obs_http_method;
+
 typedef enum
 {
     OBS_MUTUAL_SSL_CLOSE = 0,
@@ -1294,6 +1308,30 @@ typedef struct bucket_trash_configuration {
     int reserved_days;
 }bucket_trash_configuration;
 
+/**
+ * 临时授权URL参数
+ */
+typedef struct obs_temp_url_params
+{
+    const char *key;                          // 对象键名，必填
+    const char *version_id;                    // 版本ID（可选），用于访问特定版本的对象
+    uint64_t expires;                        // 过期时间（秒），必填，建议值：7天=604800秒
+    obs_http_method http_method;                // HTTP方法，必填
+    obs_name_value *query_params;              // 查询参数（可选）
+    unsigned int query_params_count;            // 查询参数数量
+} obs_temp_url_params;
+
+/**
+ * 临时授权URL生成结果
+ */
+typedef struct obs_temp_url_result
+{
+    char url[OBS_MAX_TEMP_URL_LENGTH];        // 生成的临时URL
+    int64_t expires_timestamp;                // 过期时间戳
+    obs_status status;                       // 生成状态
+    const char *error_message;                // 错误消息（如果失败）
+} obs_temp_url_result;
+
 /****************************init handle *****************************************************/
 eSDK_OBS_API obs_status obs_initialize(int win32_flags);
 
@@ -1302,6 +1340,101 @@ eSDK_OBS_API void obs_deinitialize();
 eSDK_OBS_API void init_obs_options(obs_options * options);
 
 eSDK_OBS_API int obs_status_is_retryable(obs_status status);
+
+/*************************************temporary authorization url**************************************/
+
+/**
+ * 初始化临时授权URL参数结构
+ */
+eSDK_OBS_API void init_temp_url_params(obs_temp_url_params *params);
+
+/**
+ * 生成通用临时授权URL
+ *
+ * @param options SDK配置选项
+ * @param params 临时授权URL参数
+ * @param result 输出结果，包含生成的URL
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_presigned_url(
+    const obs_options *options,
+    const obs_temp_url_params *params,
+    obs_temp_url_result *result
+);
+
+/**
+ * 生成GET临时授权URL（用于下载对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_get_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成PUT临时授权URL（用于上传对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param content_type 内容类型（可选）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_put_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    const char *content_type,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成DELETE临时授权URL（用于删除对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_delete_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成HEAD临时授权URL（用于获取对象元数据）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_head_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
 
 eSDK_OBS_API obs_status set_online_request_max_count(uint32_t online_request_max);
 
@@ -1617,6 +1750,102 @@ eSDK_OBS_API void get_bucket_trash_configuration(const obs_options *options,
 	obs_response_handler *handler, void *callback_data); 
 eSDK_OBS_API void delete_bucket_trash_configuration(const obs_options *options
 	, obs_response_handler *handler, void *callback_data);
+
+/*************************************temporary authorization url**************************************/
+
+/**
+ * 初始化临时授权URL参数结构
+ */
+eSDK_OBS_API void init_temp_url_params(obs_temp_url_params *params);
+
+/**
+ * 生成通用临时授权URL
+ *
+ * @param options SDK配置选项
+ * @param params 临时授权URL参数
+ * @param result 输出结果，包含生成的URL
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_presigned_url(
+    const obs_options *options,
+    const obs_temp_url_params *params,
+    obs_temp_url_result *result
+);
+
+/**
+ * 生成GET临时授权URL（用于下载对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_get_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成PUT临时授权URL（用于上传对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param content_type 内容类型（可选）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_put_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    const char *content_type,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成DELETE临时授权URL（用于删除对象）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_delete_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
+
+/**
+ * 生成HEAD临时授权URL（用于获取对象元数据）
+ *
+ * @param options SDK配置选项
+ * @param key 对象键名
+ * @param expires 过期时间（秒）
+ * @param url_out 输出URL缓冲区
+ * @param url_out_len URL缓冲区大小
+ * @return OBS_STATUS_OK成功，其他失败
+ */
+eSDK_OBS_API obs_status create_head_temp_url(
+    const obs_options *options,
+    const char *key,
+    uint64_t expires,
+    char *url_out,
+    int url_out_len
+);
+
 #ifdef __cplusplus
 }
 #endif
